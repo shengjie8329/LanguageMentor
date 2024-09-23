@@ -23,7 +23,6 @@ def handle_conversation(user_input, chat_history):
     return bot_message
 
 
-
 # 场景 Agent 处理函数，根据选择的场景调用相应的 Agent
 def handle_scenario(user_input, history, scenario):
     agents = {
@@ -34,6 +33,14 @@ def handle_scenario(user_input, history, scenario):
     }
     return agents[scenario].respond(user_input)
 
+
+# 清除聊天历史的函数
+def clear_chat_history():
+    # 这里编写清除聊天历史的逻辑
+    # 通常这会涉及到重置聊天状态或者清空聊天记录
+    print("--------清除历史记录-------")
+    return "", ""  # 返回空的输入和输出
+
 # Gradio 界面
 with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
     with gr.Tab("对话练习"):
@@ -43,8 +50,11 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
             height=800,
         )
 
+        # 创建清除按钮，并指定清除逻辑
+        clear_btn = gr.Button("清除历史记录")
+
         gr.ChatInterface(
-            fn=handle_conversation, 
+            fn=handle_conversation,
             chatbot=conversation_chatbot,
             retry_btn=None,
             undo_btn=None,
@@ -59,7 +69,7 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
             placeholder="<strong>你的英语私教 DjangoPeng</strong><br><br>选择场景后开始对话吧！",
             height=800,
         )
-        
+
         # 场景聊天界面
         gr.ChatInterface(
             fn=handle_scenario,
@@ -73,4 +83,3 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
 
 if __name__ == "__main__":
     language_mentor_app.launch(share=True, server_name="0.0.0.0")
-

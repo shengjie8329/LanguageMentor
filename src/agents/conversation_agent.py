@@ -2,6 +2,7 @@
 from langchain_ollama.chat_models import ChatOllama  # 导入 ChatOllama 模型
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder  # 导入提示模板相关类
 from langchain_core.messages import HumanMessage  # 导入人类消息类
+from langchain_openai import ChatOpenAI
 from utils.logger import LOG  # 导入日志工具
 
 from langchain_core.chat_history import (
@@ -51,6 +52,8 @@ class ConversationAgent:
             max_tokens=8192,  # 最大生成的token数
             temperature=0.8,  # 生成文本的随机性
         )
+
+        # self.chatbot = self.prompt | ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-4o-mini", temperature=0.8)
 
         # 将聊天机器人与消息历史记录关联起来
         self.chatbot_with_history = RunnableWithMessageHistory(self.chatbot, get_session_history)

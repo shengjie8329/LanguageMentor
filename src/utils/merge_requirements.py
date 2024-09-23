@@ -115,7 +115,6 @@ def main():
 
     # 合并包信息
     merged_requirements, conflict_detected = merge_requirements(installed_versions, req_versions)
-
     # 将合并结果写回 requirements.txt
     with open('requirements.txt', 'w') as f:
         for line in merged_requirements:
