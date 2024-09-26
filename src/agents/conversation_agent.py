@@ -29,6 +29,22 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = InMemoryChatMessageHistory()
     return store[session_id]
 
+
+def clear_session_history(session_id: str) -> BaseChatMessageHistory:
+    """
+    获取指定会话ID的聊天历史。如果该会话ID不存在，则创建一个新的聊天历史实例。
+
+    参数:
+        session_id (str): 会话的唯一标识符
+
+    返回:
+        BaseChatMessageHistory: 对应会话的聊天历史对象
+    """
+    if session_id in store:
+        # 如果会话ID不存在于存储中，创建一个新的内存聊天历史实例
+        store[session_id].clear()
+    return store[session_id]
+
 class ConversationAgent:
     """
     对话代理类，负责处理与用户的对话。
@@ -47,13 +63,13 @@ class ConversationAgent:
         ])
 
         # 初始化 ChatOllama 模型，配置模型参数
-        self.chatbot = self.prompt | ChatOllama(
-            model="llama3.1:8b-instruct-q8_0",  # 使用的模型名称
-            max_tokens=8192,  # 最大生成的token数
-            temperature=0.8,  # 生成文本的随机性
-        )
+        # self.chatbot = self.prompt | ChatOllama(
+        #     model="llama3.1:8b-instruct-q8_0",  # 使用的模型名称
+        #     max_tokens=8192,  # 最大生成的token数
+        #     temperature=0.8,  # 生成文本的随机性
+        # )
 
-        # self.chatbot = self.prompt | ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-4o-mini", temperature=0.8)
+        self.chatbot = self.prompt | ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-4o-mini", temperature=0.8)
 
         # 将聊天机器人与消息历史记录关联起来
         self.chatbot_with_history = RunnableWithMessageHistory(self.chatbot, get_session_history)
@@ -92,3 +108,10 @@ class ConversationAgent:
         )
         LOG.debug(response)  # 记录调试日志
         return response.content  # 返回生成的回复内容
+
+    def clear_chat_history(self):
+        session_id = self.config["configurable"]["session_id"]
+        print(f"clear session_id: {session_id}")
+        clear_session_history(session_id)
+
+

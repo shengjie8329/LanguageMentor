@@ -39,26 +39,30 @@ def clear_chat_history():
     # 这里编写清除聊天历史的逻辑
     # 通常这会涉及到重置聊天状态或者清空聊天记录
     print("--------清除历史记录-------")
-    return "", ""  # 返回空的输入和输出
+    conversation_agent.clear_chat_history()
+    return []  # 返回空的输入和输出
 
 # Gradio 界面
 with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
     with gr.Tab("对话练习"):
         gr.Markdown("## 练习英语对话 ")
         conversation_chatbot = gr.Chatbot(
-            placeholder="<strong>你的英语私教 DjangoPeng</strong><br><br>想和我聊什么话题都可以，记得用英语哦！",
+            placeholder="<strong>你的英语私教 School Master</strong><br><br>想和我聊什么话题都可以，记得用英语哦！",
             height=800,
         )
 
         # 创建清除按钮，并指定清除逻辑
         clear_btn = gr.Button("清除历史记录")
 
+        clear_btn.click(clear_chat_history, outputs=conversation_chatbot)
+
         gr.ChatInterface(
             fn=handle_conversation,
             chatbot=conversation_chatbot,
             retry_btn=None,
             undo_btn=None,
-            clear_btn="清除历史记录",
+            # clear_btn="清除历史记录",
+            clear_btn=None,
             submit_btn="发送",
         )
 
