@@ -33,10 +33,21 @@ def handle_scenario(user_input, chat_history, scenario):
     LOG.info(f"[ChatBot]: {bot_message}")  # 记录场景代理的回复
     return bot_message  # 返回场景代理的回复
 
+# 定义一个回调函数，用于根据 Radio 组件的选择返回不同的 Dropdown 选项
+def update_model_list(model_type):
+    md = None
+    if model_type == "openai":
+        md = gr.Dropdown(choices=["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"], label="选择模型", interactive=True, value="gpt-4o-mini")
+        md.value = "gpt-4o-mini"
+    elif model_type == "ollama":
+        md = gr.Dropdown(choices=["llama3.1:70b", "gemma2:2b", "qwen2:7b"], label="选择模型", interactive=True, value="llama3.1:70b")
+        md.value = "llama3.1:70b"
+    return md
+
+
 # Gradio 界面构建
 with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
     with gr.Tab("场景训练"):  # 场景训练标签
-        gr.Markdown("## 选择一个场景完成目标和挑战")  # 场景选择说明
 
         # 创建单选框组件
         scenario_radio = gr.Radio(
@@ -47,8 +58,31 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
                 ("租房", "renting_house"),  # 租房选项
                 ("请假", "ask_for_leave"),  # 请假场景
             ], 
-            label="场景"  # 单选框标签
+            label="场景",  # 单选框标签
+            value="job_interview",
         )
+
+        # 创建 Radio 组件
+        model_type = gr.Radio(["openai", "ollama"], label="模型类型", value="openai",
+                              info="使用 OpenAI GPT API 或 Ollama 私有化模型服务")
+
+        # 创建 Dropdown 组件
+        model_name = gr.Dropdown(choices=["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"], label="选择模型",
+                                 value="gpt-4o-mini",
+                                 allow_custom_value=True, interactive=True)
+
+        gr.Markdown("## 选择一个场景完成目标和挑战")  # 场景选择说明
+
+        # 使用 radio 组件的值来更新 dropdown 组件的选项
+        model_type.change(fn=update_model_list, inputs=model_type, outputs=[model_name])
+
+
+        def update_model_name(model_name):
+            print(f"senario name: {scenario_radio.value}")
+            print(f"model name: {model_name}")
+
+
+        model_name.change(fn=update_model_name, inputs=model_name, outputs=None)
 
         scenario_intro = gr.Markdown()  # 场景介绍文本组件
         scenario_chatbot = gr.Chatbot(
@@ -58,13 +92,16 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
 
         # 获取场景介绍并启动新会话的函数
         def start_new_scenario_chatbot(scenario):
+            print(model_name.value)
             initial_ai_message = agents[scenario].start_new_session()  # 启动新会话并获取初始AI消息
 
             return gr.Chatbot(
                 value=[(None, initial_ai_message)],  # 设置聊天机器人的初始消息
                 height=600,  # 聊天窗口高度
             )
-        
+
+
+
         # 更新场景介绍并在场景变化时启动新会话
         scenario_radio.change(
             fn=lambda s: (get_scenario_intro(s), start_new_scenario_chatbot(s)),  # 更新场景介绍和聊天机器人
@@ -82,6 +119,8 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
             clear_btn="清除历史记录",  # 清除历史记录按钮文本
             submit_btn="发送",  # 发送按钮文本
         )
+
+        update_model_name(model_name.value)
 
     with gr.Tab("对话练习"):  # 对话练习标签
         gr.Markdown("## 练习英语对话 ")  # 对话练习说明
