@@ -28,8 +28,10 @@ def get_scenario_intro(scenario):
     return scenario_intro  # 返回场景介绍内容
 
 # 场景代理处理函数，根据选择的场景调用相应的代理
-def handle_scenario(user_input, chat_history, scenario):
-    bot_message = agents[scenario].chat_with_history(user_input)  # 获取场景代理的回复
+def handle_scenario(user_input, chat_history, scenario, model_type, model_name):
+    print(model_type)
+    print(model_name)
+    bot_message = agents[scenario].chat_with_history(user_input, None, model_type, model_name)  # 获取场景代理的回复
     LOG.info(f"[ChatBot]: {bot_message}")  # 记录场景代理的回复
     return bot_message  # 返回场景代理的回复
 
@@ -80,6 +82,8 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
         def update_model_name(model_name):
             print(f"senario name: {scenario_radio.value}")
             print(f"model name: {model_name}")
+            # 改变所属场景的模型
+            agents[scenario_radio.value].change_model(model_type.value, model_name)
 
 
         model_name.change(fn=update_model_name, inputs=model_name, outputs=None)
@@ -93,6 +97,8 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
         # 获取场景介绍并启动新会话的函数
         def start_new_scenario_chatbot(scenario):
             print(model_name.value)
+            # 切换场景时也要切换所属场景的模型
+            agents[scenario].change_model(model_type.value, model_name.value)
             initial_ai_message = agents[scenario].start_new_session()  # 启动新会话并获取初始AI消息
 
             return gr.Chatbot(
@@ -113,7 +119,7 @@ with gr.Blocks(title="LanguageMentor 英语私教") as language_mentor_app:
         gr.ChatInterface(
             fn=handle_scenario,  # 处理场景聊天的函数
             chatbot=scenario_chatbot,  # 聊天机器人组件
-            additional_inputs=scenario_radio,  # 额外输入为场景选择
+            additional_inputs=[scenario_radio, model_type, model_name],  # 额外输入为场景选择
             retry_btn=None,  # 不显示重试按钮
             undo_btn=None,  # 不显示撤销按钮
             clear_btn="清除历史记录",  # 清除历史记录按钮文本

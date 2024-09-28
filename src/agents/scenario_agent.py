@@ -10,6 +10,15 @@ from langchain_openai import ChatOpenAI
 from .session_history import get_session_history  # 导入会话历史相关方法
 from utils.logger import LOG
 
+model_mapping: dict = {
+    "openai_gpt-4o":  ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-4o", temperature=0.8),
+    "openai_gpt-4o-mini":  ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-4o-mini", temperature=0.8),
+    "openai_gpt-3.5-turbo":  ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-3.5-turbo", temperature=0.8),
+    "ollama_llama3.1:70b":  ChatOpenAI(model="llama3.1:70b", max_tokens=8192, temperature=0.8),
+    "ollama_gemma2:2b":  ChatOpenAI(model="gemma2:2b", max_tokens=8192, temperature=0.8),
+    "ollama_qwen2:7b":  ChatOpenAI(model="qwen2:7b", max_tokens=8192, temperature=0.8),
+}
+
 class ScenarioAgent:
     def __init__(self, scenario_name):
         self.name = scenario_name
@@ -17,7 +26,6 @@ class ScenarioAgent:
         self.intro_file = f"content/intro/{self.name}.json"
         self.prompt = self.load_prompt()
         self.intro_messages = self.load_intro()
-
         self.create_chatbot()
 
     
@@ -38,7 +46,7 @@ class ScenarioAgent:
             raise ValueError(f"Intro file {self.intro_file} contains invalid JSON!")
 
 
-    def create_chatbot(self):
+    def create_chatbot(self, model_type:str = "openai", model_name: str ="gpt-4o-mini"):
             # 创建聊天提示模板，包括系统提示和消息占位符
             system_prompt = ChatPromptTemplate.from_messages([
                 ("system", self.prompt),  # 系统提示部分
@@ -52,9 +60,38 @@ class ScenarioAgent:
             #     temperature=0.8,  # 生成文本的随机性
             # )
 
-            self.chatbot = system_prompt | ChatOpenAI(openai_api_base="https://ai-yyds.com/v1", model="gpt-4o-mini", temperature=0.8)
+            self.key = f"{model_type}_{model_name}"
+            self.llm = model_mapping[self.key]
+            if not self.llm:
+                print(f"no mapping: {self.key}")
+                self.llm = model_mapping["openai_gpt-4o-mini"]
+
+            self.chatbot = system_prompt | self.llm
             # 将聊天机器人与消息历史记录关联起来
             self.chatbot_with_history = RunnableWithMessageHistory(self.chatbot, get_session_history)
+
+    def change_model(self, model_type, model_name):
+        key = f"{model_type}_{model_name}"
+        print(f" change model: {key}")
+        if key == self.key:
+            return
+
+        llm = model_mapping[key]
+        if not llm:
+            print(f"no mapping: {key}")
+            return
+
+        self.key = key
+        print(f"current key: {self.key}")
+        self.llm = model_mapping[self.key]
+        system_prompt = ChatPromptTemplate.from_messages([
+            ("system", self.prompt),  # 系统提示部分
+            MessagesPlaceholder(variable_name="messages"),  # 消息占位符
+        ])
+        self.chatbot = system_prompt | self.llm
+        # 将聊天机器人与消息历史记录关联起来
+        self.chatbot_with_history = RunnableWithMessageHistory(self.chatbot, get_session_history)
+
 
     def start_new_session(self, session_id: str = None):
         """
@@ -77,7 +114,7 @@ class ScenarioAgent:
             return history.messages[-1].content  # 返回历史记录中的最后一条消息
 
 
-    def chat_with_history(self, user_input, session_id: str = None):
+    def chat_with_history(self, user_input, session_id: str = None, model_type: str = None, model_name: str = None):
         """
         处理用户输入并生成包含聊天历史的回复，同时记录日志。
         
@@ -91,6 +128,25 @@ class ScenarioAgent:
         # TODO: InMemoryStore -> DB
         if session_id is None:
             session_id = self.name
+
+        print(f"{model_type}_{model_name}")
+
+        if model_type and model_name:
+            print(f"use {model_type}_{model_name}")
+            llm = model_mapping[f"{model_type}_{model_name}"]
+            system_prompt = ChatPromptTemplate.from_messages([
+                ("system", self.prompt),  # 系统提示部分
+                MessagesPlaceholder(variable_name="messages"),  # 消息占位符
+            ])
+            chatbot = system_prompt | llm
+            # 将聊天机器人与消息历史记录关联起来
+            chatbot_with_history = RunnableWithMessageHistory(chatbot, get_session_history)
+            print(f"change self.chatbot_with_history")
+            response = chatbot_with_history.invoke(
+                [HumanMessage(content=user_input)],  # 将用户输入封装为 HumanMessage
+                {"configurable": {"session_id": session_id}},  # 传入配置，包括会话ID
+            )
+            return response.content
 
         response = self.chatbot_with_history.invoke(
             [HumanMessage(content=user_input)],  # 将用户输入封装为 HumanMessage
