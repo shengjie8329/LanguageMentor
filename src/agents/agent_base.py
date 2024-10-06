@@ -5,9 +5,10 @@ from langchain_ollama.chat_models import ChatOllama  # 导入 ChatOllama 模型
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder  # 导入提示模板相关类
 from langchain_core.messages import HumanMessage  # 导入消息类
 from langchain_core.runnables.history import RunnableWithMessageHistory  # 导入带有消息历史的可运行类
+from langchain_openai import ChatOpenAI
 
 from .session_history import get_session_history  # 导入会话历史相关方法
-from utils.logger import LOG  # 导入日志工具
+from src.utils.logger import LOG  # 导入日志工具
 
 class AgentBase(ABC):
     """
@@ -55,9 +56,15 @@ class AgentBase(ABC):
         ])
 
         # 初始化 ChatOllama 模型，配置参数
-        self.chatbot = system_prompt | ChatOllama(
-            model="llama3.1:8b-instruct-q8_0",  # 使用的模型名称
-            max_tokens=8192,  # 最大生成的 token 数
+        # self.chatbot = system_prompt | ChatOllama(
+        #     model="llama3.1:8b-instruct-q8_0",  # 使用的模型名称
+        #     max_tokens=8192,  # 最大生成的 token 数
+        #     temperature=0.8,  # 随机性配置
+        # )
+
+        self.chatbot = system_prompt | ChatOpenAI(
+            model="gpt-4o-mini",  # 使用的模型名称
+            base_url="https://ai-yyds.com/v1",
             temperature=0.8,  # 随机性配置
         )
 
